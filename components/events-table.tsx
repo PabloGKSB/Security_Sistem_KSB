@@ -7,12 +7,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 interface Event {
   id: string
+  door_id: string
   board_name: string
   location: string
   event_type: string
-  authorized: boolean
-  timestamp: string
-  duration_seconds: number | null
+  created_at: string
 }
 
 const LOCATIONS = ["SANTIAGO CASA MATRIZ", "ANTOFAGASTA", "COQUIMBO", "CONCEPCION", "PUERTO MONTT"]
@@ -27,7 +26,7 @@ export function EventsTable() {
       const url = location === "all" ? "/api/door/events" : `/api/door/events?location=${encodeURIComponent(location)}`
       const response = await fetch(url)
       const data = await response.json()
-      setEvents(data)
+      setEvents(Array.isArray(data) ? data : [])
     } catch (error) {
       console.error("[v0] Error fetching events:", error)
     } finally {
@@ -39,10 +38,7 @@ export function EventsTable() {
     fetchEvents()
   }, [location])
 
-  const getEventBadge = (eventType: string, authorized: boolean) => {
-    if (eventType === "forced") return <Badge variant="destructive">Forzada</Badge>
-    if (eventType === "unauthorized") return <Badge variant="destructive">No Autorizado</Badge>
-    if (eventType === "authorized") return <Badge variant="default">Autorizado</Badge>
+  const getEventBadge = (eventType: string) => {
     if (eventType === "open") return <Badge variant="secondary">Abierta</Badge>
     if (eventType === "close") return <Badge variant="outline">Cerrada</Badge>
     return <Badge>{eventType}</Badge>
@@ -84,24 +80,21 @@ export function EventsTable() {
                   Cargando eventos...
                 </TableCell>
               </TableRow>
-            ) : events.length === 0 ? (
+            ) : !Array.isArray(events) || events.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} className="text-center text-muted-foreground">
                   No hay eventos registrados
                 </TableCell>
               </TableRow>
             ) : (
+              Array.isArray(events) &&
               events.map((event) => (
                 <TableRow key={event.id}>
-                  <TableCell className="font-medium">{new Date(event.timestamp).toLocaleString("es-CL")}</TableCell>
+                  <TableCell className="font-medium">{new Date(event.created_at).toLocaleString("es-CL")}</TableCell>
                   <TableCell>{event.location}</TableCell>
                   <TableCell>{event.board_name}</TableCell>
-                  <TableCell>{getEventBadge(event.event_type, event.authorized)}</TableCell>
-                  <TableCell>
-                    {event.duration_seconds
-                      ? `${Math.floor(event.duration_seconds / 60)}m ${event.duration_seconds % 60}s`
-                      : "-"}
-                  </TableCell>
+                  <TableCell>{getEventBadge(event.event_type)}</TableCell>
+                  <TableCell>-</TableCell>
                 </TableRow>
               ))
             )}

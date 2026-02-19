@@ -14,8 +14,14 @@ export async function POST(request: Request) {
     const { data: contacts, error } = await supabase.from("alert_contacts").select("*").eq("active", true)
 
     if (error) {
-      console.error("[v0] Error obteniendo contactos:", error)
-      return NextResponse.json({ error: "Error obteniendo contactos", details: error.message }, { status: 500 })
+      console.error("[v0] Error obteniendo contactos (no bloqueante):", error)
+      return NextResponse.json({
+        success: false,
+        message: "No se pudieron obtener contactos, pero el evento principal no se ve afectado",
+        details: error.message,
+        sent_to: 0,
+        results: [],
+      })
     }
 
     if (!contacts || contacts.length === 0) {
@@ -34,21 +40,20 @@ export async function POST(request: Request) {
     const twilioPhone = process.env.TWILIO_PHONE_NUMBER
 
     if (!accountSid || !authToken || !twilioPhone) {
-      console.error("[v0] Credenciales de Twilio no configuradas")
-      console.error("[v0] TWILIO_ACCOUNT_SID:", accountSid ? "presente" : "faltante")
-      console.error("[v0] TWILIO_AUTH_TOKEN:", authToken ? "presente" : "faltante")
-      console.error("[v0] TWILIO_PHONE_NUMBER:", twilioPhone ? "presente" : "faltante")
-      return NextResponse.json(
-        {
-          error: "Twilio no configurado correctamente",
-          missing: {
-            accountSid: !accountSid,
-            authToken: !authToken,
-            twilioPhone: !twilioPhone,
-          },
+      console.warn("[v0] Twilio no configurado. Se omite envío de SMS pero se responde éxito para la POC.")
+      return NextResponse.json({
+        success: false,
+        message: "Twilio no configurado. Para la POC se omiten SMS sin considerar error.",
+        missing: {
+          accountSid: !accountSid,
+          authToken: !authToken,
+          twilioPhone: !twilioPhone,
         },
-        { status: 500 },
-      )
+        sent_to: 0,
+        total_contacts: contacts.length,
+        unverified_count: 0,
+        results: [],
+      })
     }
 
     const results = []
@@ -123,13 +128,15 @@ export async function POST(request: Request) {
       results,
     })
   } catch (error) {
-    console.error("[v0] Error crítico en envío de alertas:", error)
-    return NextResponse.json(
-      {
-        error: "Error crítico sending alerts",
-        details: error instanceof Error ? error.message : String(error),
-      },
-      { status: 500 },
-    )
+    console.error("[v0] Error crítico en envío de alertas (no bloqueante para POC):", error)
+    return NextResponse.json({
+      success: false,
+      message: "Error crítico enviando SMS. Para la POC se considera no bloqueante.",
+      details: error instanceof Error ? error.message : String(error),
+      sent_to: 0,
+      total_contacts: 0,
+      unverified_count: 0,
+      results: [],
+    })
   }
 }

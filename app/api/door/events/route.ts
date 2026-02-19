@@ -7,7 +7,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const location = searchParams.get("location")
 
-    let query = supabase.from("door_events").select("*").order("timestamp", { ascending: false }).limit(100)
+    let query = supabase.from("door_events").select("*").order("created_at", { ascending: false }).limit(200)
 
     if (location) {
       query = query.eq("location", location)
@@ -15,11 +15,15 @@ export async function GET(request: Request) {
 
     const { data, error } = await query
 
-    if (error) throw error
+    if (error) {
+      console.error("[poc] Error leyendo door_events:", error)
+      return NextResponse.json([])
+    }
 
-    return NextResponse.json(data)
+    return NextResponse.json(Array.isArray(data) ? data : [])
   } catch (error) {
-    console.error("[v0] Error fetching events:", error)
-    return NextResponse.json({ error: "Error fetching events" }, { status: 500 })
+    console.error("[poc] Error inesperado en /api/door/events:", error)
+    return NextResponse.json([])
   }
 }
+

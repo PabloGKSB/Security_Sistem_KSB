@@ -23,16 +23,16 @@ export default function ReportsPage() {
       const response = await fetch(url)
       const events = await response.json()
 
+      const safeEvents = Array.isArray(events) ? events : []
+
       const csv = [
-        ["Fecha y Hora", "Ubicación", "Tablero", "Tipo de Evento", "Autorizado", "Duración (segundos)"].join(","),
-        ...events.map((event: any) =>
+        ["Fecha y Hora", "Ubicación", "Tablero", "Tipo de Evento"].join(","),
+        ...safeEvents.map((event: any) =>
           [
-            new Date(event.timestamp).toLocaleString("es-CL"),
+            new Date(event.created_at || event.timestamp || "").toLocaleString("es-CL"),
             event.location,
             event.board_name,
             event.event_type,
-            event.authorized ? "Sí" : "No",
-            event.duration_seconds || "",
           ].join(","),
         ),
       ].join("\n")

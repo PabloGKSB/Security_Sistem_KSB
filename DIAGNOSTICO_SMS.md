@@ -1,4 +1,7 @@
-# Guía de Diagnóstico SMS - Sistema IoT Seguridad
+# Guía de Diagnóstico SMS - Sistema IoT Seguridad (LEGACY / OPCIONAL)
+
+> Nota: Esta guía aplica solo si decides habilitar el canal SMS con Twilio.  
+> La POC de tablero eléctrico (solo reed switch open/close) funciona sin Twilio y sin contactos SMS.
 
 ## 📋 Checklist de Configuración
 

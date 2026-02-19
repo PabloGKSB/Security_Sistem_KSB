@@ -26,9 +26,6 @@ interface DoorStatus {
   is_open: boolean
   last_updated: string
   event_start_time: string | null
-  custom_name?: string
-  asset_location?: string
-  asset_description?: string
 }
 
 export function DashboardMonitor() {
@@ -41,7 +38,7 @@ export function DashboardMonitor() {
     try {
       const response = await fetch("/api/door/status")
       const data = await response.json()
-      setDoors(data)
+      setDoors(Array.isArray(data) ? data : [])
     } catch (error) {
       console.error("[v0] Error fetching door status:", error)
     } finally {
@@ -129,9 +126,9 @@ export function DashboardMonitor() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {doors.map((door) => {
-          const displayName = door.custom_name || door.board_name
-
+        {Array.isArray(doors) &&
+          doors.map((door) => {
+            const displayName = door.board_name
           return (
             <Card
               key={door.id}
@@ -152,9 +149,7 @@ export function DashboardMonitor() {
                     <MapPin className="h-4 w-4" />
                     {door.location}
                   </div>
-                  {door.asset_description && (
-                    <div className="text-xs text-muted-foreground italic">{door.asset_description}</div>
-                  )}
+                  {/* En la POC no usamos descripción de activos; se podría agregar vía door_status.details si se requiere */}
                   {door.is_open && door.event_start_time && (
                     <div className="flex items-center gap-2 text-sm text-red-400 font-medium">
                       <Clock className="h-4 w-4" />
@@ -170,9 +165,9 @@ export function DashboardMonitor() {
           )
         })}
 
-        {doors.length === 0 && (
+        {(!Array.isArray(doors) || doors.length === 0) && (
           <div className="col-span-full text-center py-8 text-muted-foreground">
-            No hay activos registrados. Ve a la sección de Administración para agregar activos.
+            No hay puertas registradas aún. Cuando el ESP32 envíe el primer evento, aparecerán aquí.
           </div>
         )}
       </div>

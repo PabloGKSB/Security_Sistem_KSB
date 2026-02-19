@@ -13,42 +13,18 @@ export default function AdminPage() {
             <Link href="/">
               <Button variant="ghost" size="sm">
                 <ArrowLeft className="mr-2 h-4 w-4" />
-                Volver al Dashboard
+                Volver al dashboard
               </Button>
             </Link>
             <UserNav />
           </div>
           <h1 className="text-3xl font-bold">Panel de Administración</h1>
-          <p className="text-muted-foreground mt-1">Gestión de usuarios, contactos y configuración del sistema</p>
+          <p className="text-muted-foreground mt-1">Configuración del sistema y herramientas de mantención</p>
         </div>
       </header>
 
       <main className="container mx-auto px-4 py-8">
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          <Card className="hover:border-primary transition-colors cursor-pointer">
-            <CardHeader>
-              <CardTitle>Activos ESP32</CardTitle>
-              <CardDescription>Gestionar activos conectados y nombres personalizados</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Link href="/admin/assets">
-                <Button className="w-full">Administrar Activos</Button>
-              </Link>
-            </CardContent>
-          </Card>
-
-          <Card className="hover:border-primary transition-colors cursor-pointer">
-            <CardHeader>
-              <CardTitle>Usuarios Autorizados</CardTitle>
-              <CardDescription>Gestionar acceso con tarjetas RFID</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Link href="/admin/users">
-                <Button className="w-full">Administrar Usuarios</Button>
-              </Link>
-            </CardContent>
-          </Card>
-
           <Card className="hover:border-primary transition-colors cursor-pointer">
             <CardHeader>
               <CardTitle>Contactos de Alertas</CardTitle>

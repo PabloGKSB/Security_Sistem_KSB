@@ -1,8 +1,10 @@
-# Guía de Limpieza de Base de Datos
+# Guía de Limpieza de Base de Datos (LEGACY / NO APLICA A POC RFID-LESS)
 
 ## Opciones de Limpieza
 
-Existen dos formas de limpiar la base de datos del sistema IoT:
+Existen dos formas de limpiar la base de datos del sistema IoT original con RFID y SMS.  
+Para la POC de tablero eléctrico basada solo en eventos open/close, usa los nuevos scripts `001_create_tables_poc.sql`,
+`002_seed_locations_poc.sql` y `003_setup_rls_poc.sql` y considera esta guía solo como referencia histórica.
 
 ### 1. Desde la Interfaz Web (Recomendado)
 

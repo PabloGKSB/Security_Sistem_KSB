@@ -1,6 +1,6 @@
 /*
- * Sistema IoT de Seguridad - Firmware ESP32-S3
- * Control de puertas con sensor magnético y lector RFID
+ * Sistema IoT de Seguridad - Firmware ESP32-S3 (POC)
+ * Control de puertas con sensor magnético (reed switch) SIN RFID
  * 
  * Ubicaciones disponibles:
  * - SANTIAGO CASA MATRIZ
@@ -12,8 +12,6 @@
 
 #include <WiFi.h>
 #include <HTTPClient.h>
-#include <MFRC522.h>
-#include <SPI.h>
 
 // Configuración WiFi
 const char* WIFI_SSID = "TU_WIFI";
@@ -28,10 +26,6 @@ const char* LOCATION = "SANTIAGO CASA MATRIZ";  // Cambiar según ubicación
 
 // Pines
 #define DOOR_SENSOR_PIN 4   // Sensor magnético
-#define SS_PIN 5            // RFID SS
-#define RST_PIN 22          // RFID RST
-
-MFRC522 rfid(SS_PIN, RST_PIN);
 bool doorWasOpen = false;
 unsigned long doorOpenTime = 0;
 
@@ -40,10 +34,6 @@ void setup() {
   
   // Configurar pines
   pinMode(DOOR_SENSOR_PIN, INPUT_PULLUP);
-  
-  // Inicializar SPI y RFID
-  SPI.begin();
-  rfid.PCD_Init();
   
   // Conectar WiFi
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
@@ -80,35 +70,10 @@ void loop() {
     doorWasOpen = false;
   }
   
-  // Leer tarjeta RFID
-  if (rfid.PICC_IsNewCardPresent() && rfid.PICC_ReadCardSerial()) {
-    String uid = getUID();
-    Serial.print("Tarjeta detectada: ");
-    Serial.println(uid);
-    
-    // Por ahora, marcar como no autorizado
-    // El servidor verificará contra la base de datos
-    String details = "RFID: " + uid;
-    sendEvent("unauthorized", false, details.c_str());
-    
-    rfid.PICC_HaltA();
-    rfid.PCD_StopCrypto1();
-  }
-  
   delay(100);
 }
 
-String getUID() {
-  String uid = "";
-  for (byte i = 0; i < rfid.uid.size; i++) {
-    if (rfid.uid.uidByte[i] < 0x10) uid += "0";
-    uid += String(rfid.uid.uidByte[i], HEX);
-  }
-  uid.toUpperCase();
-  return uid;
-}
-
-void sendEvent(const char* eventType, bool authorized, const char* details) {
+void sendEvent(const char* eventType, const char* details) {
   if (WiFi.status() != WL_CONNECTED) {
     Serial.println("WiFi desconectado");
     return;
@@ -123,7 +88,6 @@ void sendEvent(const char* eventType, bool authorized, const char* details) {
   json += "\"board_name\":\"" + String(BOARD_NAME) + "\",";
   json += "\"location\":\"" + String(LOCATION) + "\",";
   json += "\"event_type\":\"" + String(eventType) + "\",";
-  json += "\"authorized\":" + String(authorized ? "true" : "false") + ",";
   json += "\"details\":{\"note\":\"" + String(details) + "\"}";
   json += "}";
   

@@ -19,14 +19,11 @@ import { Plus, Send, AlertCircle } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
-const LOCATIONS = ["Santiago Casa Matriz", "Antofagasta", "Coquimbo", "Concepción", "Puerto Montt"]
+const LOCATIONS = ["SANTIAGO CASA MATRIZ", "ANTOFAGASTA", "COQUIMBO", "CONCEPCION", "PUERTO MONTT"]
 
 const EVENT_TYPES = [
-  { value: "open", label: "Apertura Normal" },
-  { value: "close", label: "Cierre Normal" },
-  { value: "authorized", label: "Acceso Autorizado" },
-  { value: "unauthorized", label: "Acceso No Autorizado" },
-  { value: "forced", label: "Apertura Forzada" },
+  { value: "open", label: "Apertura" },
+  { value: "close", label: "Cierre" },
 ]
 
 export function ManualEventForm() {
@@ -62,7 +59,6 @@ export function ManualEventForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...formData,
-          authorized: formData.event_type === "authorized",
           details: { note: formData.details, manual: true },
         }),
       })

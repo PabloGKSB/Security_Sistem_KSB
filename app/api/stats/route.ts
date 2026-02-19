@@ -7,53 +7,76 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const location = searchParams.get("location")
 
-    // Obtener estadísticas de eventos
-    let eventsQuery = supabase.from("door_events").select("event_type, location, duration_seconds")
+    // Obtener eventos recientes (tipo open/close)
+    let eventsQuery = supabase.from("door_events").select("event_type, location, created_at")
 
     if (location && location !== "all") {
       eventsQuery = eventsQuery.eq("location", location)
     }
 
-    const { data: events, error } = await eventsQuery
+    const { data: events, error: eventsError } = await eventsQuery
 
-    if (error) throw error
+    if (eventsError) throw eventsError
 
-    // Calcular estadísticas
-    const stats = {
-      total_events: events?.length || 0,
-      by_type: {} as Record<string, number>,
-      by_location: {} as Record<string, number>,
-      avg_duration: 0,
-      total_alerts: 0,
-    }
-
-    let totalDuration = 0
-    let durationCount = 0
+    // Contar eventos por tipo
+    let totalEvents = 0
+    let openEvents = 0
+    let closeEvents = 0
 
     events?.forEach((event) => {
-      // Contar por tipo
-      stats.by_type[event.event_type] = (stats.by_type[event.event_type] || 0) + 1
+      totalEvents++
+      if (event.event_type === "open") openEvents++
+      if (event.event_type === "close") closeEvents++
+    })
 
-      // Contar por ubicación
-      stats.by_location[event.location] = (stats.by_location[event.location] || 0) + 1
+    // Obtener estado actual de puertas para calcular cuántas están abiertas
+    let statusQuery = supabase.from("door_status").select("is_open, location, event_start_time")
 
-      // Calcular duración promedio
-      if (event.duration_seconds) {
-        totalDuration += event.duration_seconds
-        durationCount++
-      }
+    if (location && location !== "all") {
+      statusQuery = statusQuery.eq("location", location)
+    }
 
-      // Contar alertas
-      if (["forced", "unauthorized"].includes(event.event_type)) {
-        stats.total_alerts++
+    const { data: statuses, error: statusError } = await statusQuery
+
+    if (statusError) throw statusError
+
+    let openDoors = 0
+    let totalDurationSeconds = 0
+    let durationSamples = 0
+
+    const now = new Date()
+
+    statuses?.forEach((status) => {
+      if (status.is_open) {
+        openDoors++
+        if (status.event_start_time) {
+          const start = new Date(status.event_start_time)
+          const diffSeconds = Math.max(0, Math.floor((now.getTime() - start.getTime()) / 1000))
+          totalDurationSeconds += diffSeconds
+          durationSamples++
+        }
       }
     })
 
-    stats.avg_duration = durationCount > 0 ? Math.round(totalDuration / durationCount) : 0
+    const avgOpenDurationSeconds = durationSamples > 0 ? Math.round(totalDurationSeconds / durationSamples) : 0
 
-    return NextResponse.json(stats)
+    return NextResponse.json({
+      total_events: totalEvents,
+      open_events: openEvents,
+      close_events: closeEvents,
+      open_doors: openDoors,
+      avg_open_duration_seconds: avgOpenDurationSeconds,
+    })
   } catch (error) {
-    console.error("[v0] Error fetching stats:", error)
-    return NextResponse.json({ error: "Error fetching stats" }, { status: 500 })
+    console.error("[poc] Error fetching stats:", error)
+    return NextResponse.json(
+      {
+        total_events: 0,
+        open_events: 0,
+        close_events: 0,
+        open_doors: 0,
+        avg_open_duration_seconds: 0,
+      },
+    )
   }
 }

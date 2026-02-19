@@ -1,51 +1,34 @@
-# Sistema IoT de Seguridad - Chile
-
-Sistema completo de monitoreo de puertas y control de acceso para sucursales en Chile, usando ESP32-S3, autenticación RFID, y dashboard web en tiempo real con autenticación de usuarios.
-
-## Características Principales
-
-- **🔐 Autenticación de Usuarios**: Login seguro con email y contraseña vía Supabase Auth
-- **Monitoreo en Tiempo Real**: Estado de puertas con seguimiento de duración en vivo
-- **Control de Acceso RFID**: Autorización de entrada con tarjetas RFID
-- **Detección de Intrusos**: Alertas por entrada forzada o no autorizada
-- **Notificaciones SMS**: Envío de alertas automáticas a contactos registrados vía Twilio
-- **Dashboard Profesional**: Interfaz moderna con actualizaciones en vivo
-- **Gestión de Usuarios**: CRUD completo de usuarios autorizados por ubicación
-- **Reportes y Análisis**: Estadísticas detalladas y exportación CSV
-- **Multi-Ubicación**: Soporte para 5 sucursales en Chile
+# POC Tablero Eléctrico - Monitoreo de Apertura/Cierre
 
 ## Ubicaciones Configuradas
 
-El sistema está configurado para las siguientes ubicaciones:
+El sistema está preconfigurado para las siguientes ubicaciones de ejemplo:
 - **SANTIAGO CASA MATRIZ**
 - **ANTOFAGASTA**
 - **COQUIMBO**
 - **CONCEPCION**
 - **PUERTO MONTT**
 
-## Arquitectura
+## Arquitectura (POC sin RFID)
 
 ### Hardware
-- ESP32-S3 microcontroller
-- Sensor magnético reed switch
-- Módulo RFID-RC522 para autenticación
-- (Opcional) Buzzer para alertas locales
+- ESP32-S3 (o similar)
+- Sensor magnético reed switch conectado al ESP32
 
 ### Backend
-- Next.js 16 con App Router
+- Next.js (App Router)
 - API Routes para comunicación con ESP32
-- Supabase PostgreSQL con RLS
-- Integración Twilio para SMS
+- Supabase PostgreSQL con RLS (tablas `locations`, `door_events`, `door_status`)
+- Canal de alertas opcional (SMS/Email). Si no hay credenciales, el sistema sigue funcionando.
 
 ### Frontend
-- React Server/Client Components
-- Actualizaciones en tiempo real
-- Diseño responsivo profesional
-- Tema oscuro corporativo
+- Dashboard web protegido con Supabase Auth (email/password)
+- Monitor en tiempo real del estado de puertas
+- Historial de eventos por ubicación
 
-## Inicio Rápido
+## Inicio Rápido (POC)
 
-### 1. Crear Usuario Administrador
+### 1. Crear Usuario
 
 Antes de acceder al sistema, debes crear una cuenta:
 
@@ -56,17 +39,16 @@ Antes de acceder al sistema, debes crear una cuenta:
 
 **Nota**: El primer usuario en registrarse será el administrador principal.
 
-### 2. Configurar Base de Datos
+### 2. Configurar Base de Datos (POC)
 
-Ejecutar los scripts SQL en orden desde v0:
+Ejecutar estos scripts en el SQL Editor de Supabase, en este orden:
 
-```bash
-# 1. Limpiar políticas y configurar RLS
-scripts/001_setup_rls_policies.sql
+1. `scripts/001_create_tables_poc.sql`  
+2. `scripts/002_seed_locations_poc.sql`  
+3. `scripts/003_setup_rls_poc.sql`
 
-# 2. Insertar ubicaciones de Chile
-scripts/002_seed_chile_locations.sql
-```
+> Nota: los scripts antiguos (`001_create_tables.sql`, `004_add_authorization_management.sql`, etc.) corresponden
+> a una versión previa con RFID y no son necesarios para esta POC.
 
 ### 3. Variables de Entorno
 
@@ -75,10 +57,13 @@ Ya configuradas vía integración de Supabase:
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
 
-Para SMS (configurar en Vars):
-- `TWILIO_ACCOUNT_SID`
-- `TWILIO_AUTH_TOKEN`
-- `TWILIO_PHONE_NUMBER`
+Para SMS/WhatsApp (futuro / opcional) puedes configurar adicionalmente:
+- `TWILIO_ACCOUNT_SID` (opcional)
+- `TWILIO_AUTH_TOKEN` (opcional)
+- `TWILIO_PHONE_NUMBER` (opcional)
+
+Si estas variables no están definidas, el sistema seguirá registrando eventos normalmente y los endpoints de alerta
+responderán sin romper el flujo.
 
 ### 4. Desplegar a Vercel
 
@@ -87,7 +72,7 @@ Desde v0:
 2. Conectar a Vercel
 3. Las variables de entorno se copian automáticamente
 
-### 5. Configurar ESP32
+### 5. Configurar ESP32 (POC)
 
 1. Abrir `scripts/esp32_firmware.ino`
 2. Actualizar credenciales WiFi:
@@ -106,15 +91,10 @@ Desde v0:
    ```
 5. Flashear firmware al ESP32-S3
 
-### 6. Agregar Usuarios Autorizados
+El firmware de ejemplo para la POC (`scripts/esp32_firmware.ino`) solo envía eventos `open` / `close` junto con el
+`board_name` y la `location`.
 
-1. Ir a `/admin/users` en el dashboard
-2. Hacer clic en "Agregar Usuario"
-3. Completar datos y seleccionar ubicaciones autorizadas
-4. Agregar UID de tarjeta RFID
-5. Guardar
-
-## Estructura del Proyecto
+## Estructura del Proyecto (resumida)
 
 ```
 ├── app/
@@ -125,18 +105,18 @@ Desde v0:
 │   │   └── callback/route.ts   # Callback de confirmación email
 │   ├── admin/
 │   │   ├── page.tsx            # Panel de administración (protegido)
-│   │   ├── users/page.tsx      # Gestión de usuarios (protegido)
-│   │   ├── contacts/page.tsx   # Gestión de contactos SMS (protegido)
-│   │   └── reports/page.tsx    # Reportes y análisis (protegido)
+│   │   ├── contacts/page.tsx   # Gestión de contactos SMS (opcional)
+│   │   ├── reports/page.tsx    # Reportes y análisis (protegido)
+│   │   └── cleanup/page.tsx    # Limpieza de eventos (protegido)
 │   └── api/
 │       ├── door/
-│       │   ├── event/route.ts         # Registrar eventos ESP32
-│       │   ├── events/route.ts        # Obtener historial
-│       │   └── status/route.ts        # Estado actual
-│       ├── authorized-users/route.ts  # CRUD usuarios
-│       ├── alert-contacts/route.ts    # CRUD contactos
-│       ├── alerts/send/route.ts       # Enviar SMS
-│       └── stats/route.ts             # Estadísticas
+│       │   ├── event/route.ts         # Registrar eventos ESP32 (open/close)
+│       │   ├── events/route.ts        # Obtener historial (siempre array)
+│       │   └── status/route.ts        # Estado actual (siempre array)
+│       ├── alert-contacts/route.ts    # CRUD contactos (opcional)
+│       ├── alerts/send/route.ts       # Enviar SMS (opcional, no bloqueante)
+│       ├── alerts/email/route.ts      # Placeholder envío email (opcional)
+│       └── stats/route.ts             # Estadísticas open/close
 ├── components/
 │   ├── dashboard-monitor.tsx    # Monitor en tiempo real
 │   ├── events-table.tsx         # Tabla de eventos
@@ -154,31 +134,59 @@ Desde v0:
     └── esp32_firmware.ino               # Firmware ESP32
 ```
 
-## API Endpoints
+## API Endpoints (POC)
 
-### POST /api/door/event
-Registrar evento desde ESP32
+### POST `/api/door/event`
+Registrar evento desde ESP32 o desde el formulario manual.
+
+Cuerpo JSON:
 ```json
 {
-  "board_name": "Puerta Principal",
+  "door_id": "TABLERO_1 (opcional)",
+  "board_name": "Tablero Principal",
   "location": "SANTIAGO CASA MATRIZ",
-  "event_type": "open|close|forced|authorized|unauthorized",
-  "authorized": true|false,
+  "event_type": "open",
   "details": { "note": "Mensaje opcional" }
 }
 ```
 
-### GET /api/door/status
-Obtener estado actual de todas las puertas
+Reglas:
+- `door_id` es opcional; si no viene, se deriva como `board_name + "_" + location`.
+- `event_type` debe ser `"open"` o `"close"`.
 
-### GET /api/door/events?location=SANTIAGO
-Obtener eventos (opcional: filtrar por ubicación)
+Respuesta:
+```json
+{
+  "ok": true,
+  "event": { "...evento insertado..." },
+  "status": { "...estado actualizado..." }
+}
+```
 
-### GET /api/stats?location=SANTIAGO
-Obtener estadísticas (opcional: filtrar por ubicación)
+### GET `/api/door/status`
+Obtiene el estado actual de todas las puertas/tableros.
 
-### POST /api/alerts/send
-Enviar alerta SMS a contactos activos
+- Siempre devuelve **un array** (vacío `[]` si no hay datos o si hay error interno).
+
+### GET `/api/door/events?location=...`
+Obtiene los eventos recientes (hasta ~200), ordenados descendentemente por `created_at`.
+
+- Siempre devuelve **un array**.
+
+### GET `/api/stats?location=...`
+Devuelve estadísticas de:
+- Total de eventos (`total_events`)
+- Cantidad de eventos de apertura/cierre (`open_events`, `close_events`)
+- Puertas actualmente abiertas (`open_doors`)
+- Duración promedio abierta (`avg_open_duration_seconds`)
+
+### POST `/api/alerts/send` (opcional)
+- Envía SMS a contactos activos si Twilio está configurado.
+- Si faltan variables de entorno o hay error, responde igualmente con JSON sin romper el flujo de la POC.
+
+### POST `/api/alerts/email` (placeholder)
+- Endpoint de prueba para un canal de email futuro.
+- Actualmente solo registra la solicitud y responde `ok: true` sin enviar correos reales.
 
 ## Funcionalidades del Dashboard
 
@@ -190,28 +198,14 @@ Enviar alerta SMS a contactos activos
 - Redirección automática al login si no está autenticado
 
 ### Página Principal (`/`) - 🔐 Requiere Autenticación
-- **Estadísticas Generales**: 4 tarjetas con métricas clave
-  - Total de eventos
-  - Eventos autorizados
-  - Alertas de seguridad
-  - Duración promedio
-- **Monitor en Tiempo Real**: Estado actual de cada puerta
-  - Nombre del tablero y ubicación
-  - Estado (abierta/cerrada)
-  - Duración en tiempo real si está abierta
-- **Historial de Eventos**: Tabla completa con filtros por ubicación
-- **Crear Evento Manual**: Botón para registrar eventos manualmente
-- **Navegación de Usuario**: Dropdown con email y opción de logout
+- **Estadísticas Generales**: tarjetas con métricas de eventos open/close y puertas abiertas.
+- **Monitor en Tiempo Real**: estado actual de cada tablero (`is_open`, ubicación, duración abierta).
+- **Historial de Eventos**: tabla con filtro por ubicación.
+- **Crear Evento Manual**: formulario para registrar manualmente eventos `open`/`close`.
 
 ### Panel de Administración (`/admin`) - 🔐 Requiere Autenticación
 
-#### Usuarios Autorizados (`/admin/users`)
-- Agregar, editar y eliminar usuarios
-- Asignar ubicaciones autorizadas
-- Registrar tarjetas RFID
-- Activar/desactivar acceso
-
-#### Contactos de Alertas (`/admin/contacts`)
+#### Contactos de Alertas (`/admin/contacts`) (opcional)
 - Gestionar números para SMS
 - Formato chileno: +56912345678
 - Activar/desactivar contactos
@@ -235,7 +229,7 @@ Enviar alerta SMS a contactos activos
 
 ### Base de Datos
 - ✅ Row Level Security (RLS) habilitado
-- ✅ Políticas de acceso configuradas
+- ✅ Políticas de acceso configuradas para la POC (`003_setup_rls_poc.sql`)
 - ✅ Conexión encriptada con Supabase
 
 ### API
@@ -279,9 +273,9 @@ Enviar alerta SMS a contactos activos
 - Revisar logs de API en Vercel
 - Confirmar que board_name y location se envían
 
-### SMS no se envían (cuenta Twilio Trial)
+### SMS no se envían (si habilitas Twilio)
 - ⚠️ Las cuentas Trial solo envían SMS a números verificados
-- Verifica números en: https://www.twilio.com/console/phone-numbers/verified
+- Verifica números en: `https://www.twilio.com/console/phone-numbers/verified`
 - O actualiza a cuenta de pago para enviar a cualquier número
 - El banner en `/admin/contacts` muestra esta información
 
@@ -294,12 +288,21 @@ Enviar alerta SMS a contactos activos
 
 ## Tecnologías Utilizadas
 
-- **Frontend**: Next.js 16, React 19, Tailwind CSS v4
+- **Frontend**: Next.js (App Router), React, Tailwind CSS
 - **Backend**: Next.js API Routes, Supabase
 - **Base de Datos**: PostgreSQL (Supabase)
-- **Hardware**: ESP32-S3, MFRC522 RFID
-- **SMS**: Twilio API
+- **Hardware**: ESP32-S3 + reed switch
+- **SMS (opcional)**: Twilio API
 - **Deployment**: Vercel
+
+## Futuro: SMS / WhatsApp / RFID
+
+La POC actual está enfocada únicamente en la detección de apertura/cierre por reed switch.  
+Extensiones futuras posibles:
+
+- Integrar envío de alertas SMS/WhatsApp usando Twilio u otro proveedor.
+- Volver a habilitar control de acceso con RFID (tarjetas, usuarios autorizados).
+- Añadir emparejamiento de eventos, reportes avanzados y roles de usuario.
 
 ## Licencia
 

@@ -2,14 +2,14 @@
 
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Activity, AlertTriangle, Clock, DoorOpen } from "lucide-react"
+import { Activity, Clock, DoorOpen } from "lucide-react"
 
 interface Stats {
   total_events: number
-  by_type: Record<string, number>
-  by_location: Record<string, number>
-  avg_duration: number
-  total_alerts: number
+  open_events: number
+  close_events: number
+  open_doors: number
+  avg_open_duration_seconds: number
 }
 
 export function StatsCards({ location }: { location?: string }) {
@@ -40,9 +40,10 @@ export function StatsCards({ location }: { location?: string }) {
 
   if (!stats) return null
 
-  const openEvents = stats.by_type["open"] || 0
-  const closeEvents = stats.by_type["close"] || 0
-  const authorizedEvents = stats.by_type["authorized"] || 0
+  const openEvents = stats.open_events || 0
+  const closeEvents = stats.close_events || 0
+  const openDoors = stats.open_doors || 0
+  const avgOpenDuration = stats.avg_open_duration_seconds || 0
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -59,23 +60,12 @@ export function StatsCards({ location }: { location?: string }) {
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Eventos Autorizados</CardTitle>
+          <CardTitle className="text-sm font-medium">Aperturas</CardTitle>
           <DoorOpen className="h-4 w-4 text-green-500" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{authorizedEvents}</div>
-          <p className="text-xs text-muted-foreground">Accesos con tarjeta RFID</p>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Alertas de Seguridad</CardTitle>
-          <AlertTriangle className="h-4 w-4 text-red-500" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{stats.total_alerts}</div>
-          <p className="text-xs text-muted-foreground">Eventos no autorizados/forzados</p>
+          <div className="text-2xl font-bold">{openEvents}</div>
+          <p className="text-xs text-muted-foreground">Eventos de apertura registrados</p>
         </CardContent>
       </Card>
 
@@ -86,9 +76,20 @@ export function StatsCards({ location }: { location?: string }) {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">
-            {Math.floor(stats.avg_duration / 60)}m {stats.avg_duration % 60}s
+            {Math.floor(avgOpenDuration / 60)}m {avgOpenDuration % 60}s
           </div>
-          <p className="text-xs text-muted-foreground">Tiempo puerta abierta</p>
+          <p className="text-xs text-muted-foreground">Tiempo promedio con puerta abierta</p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Puertas Abiertas Ahora</CardTitle>
+          <DoorOpen className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">{openDoors}</div>
+          <p className="text-xs text-muted-foreground">Tableros con estado actual abierto</p>
         </CardContent>
       </Card>
     </div>
