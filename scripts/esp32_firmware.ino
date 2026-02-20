@@ -14,11 +14,11 @@
 #include <HTTPClient.h>
 
 // Configuración WiFi
-const char* WIFI_SSID = "TU_WIFI";
-const char* WIFI_PASSWORD = "TU_PASSWORD";
+const char* WIFI_SSID = "Pablo-Casa";
+const char* WIFI_PASSWORD = "LXIWS9VLSIG";
 
 // Configuración del servidor
-const char* API_URL = "https://tu-proyecto.vercel.app/api/door/event";
+const char* API_URL = "https://security-sistem-ksb2.vercel.app/api/door/event";
 
 // Configuración del tablero (CAMBIAR PARA CADA UBICACIÓN)
 const char* BOARD_NAME = "Puerta Principal";
