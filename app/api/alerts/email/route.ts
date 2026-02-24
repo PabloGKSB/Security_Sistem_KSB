@@ -1,24 +1,61 @@
 import { NextResponse } from "next/server"
+import { Resend } from "resend"
+
+const resendApiKey = process.env.RESEND_API_KEY
+
+const fromEmail = process.env.ALERTS_EMAIL_FROM
+
+const toEmails = process.env.ALERTS_EMAIL_TO
+
+const alertsToken = process.env.ALERTS_TOKEN
+
+
+const resend = resendApiKey ? new Resend(resendApiKey) : null
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json().catch(() => ({}))
+    // ✅ Seguridad mínima (opcional pero recomendado)
+    if (alertsToken) {
+      const token = request.headers.get("x-alerts-token")
+      if (token !== alertsToken) {
+        return NextResponse.json({ ok: false, message: "Unauthorized" }, { status: 401 })
+      }
+    }
 
-    console.log("[poc] Placeholder /api/alerts/email llamado", body)
+    const body = await request.json().catch(() => ({} as any))
+    const { subject, message, door_id, board_name, location, event_type } = body
 
-    // Aquí en el futuro se podría integrar un proveedor de email (SendGrid, Resend, etc.)
-    // Para la POC simplemente devolvemos éxito sin requerir variables de entorno.
+    // ✅ Solo correo en open
+    if (event_type && event_type !== "open") {
+      return NextResponse.json({ ok: true, skipped: true, reason: "Solo eventos 'open'" })
+    }
 
-    return NextResponse.json({
-      ok: true,
-      message: "Alerta de email simulada (placeholder POC). No se envió ningún correo real.",
+    // ✅ Si no hay config, no bloquea y no “falla”
+    if (!resend || !fromEmail || !toEmails) {
+      console.warn("[alerts/email] Email no configurado.")
+      return NextResponse.json({ ok: true, skipped: true, reason: "Email no configurado" })
+    }
+
+    const eventLabel = (event_type || "open").toUpperCase()
+    const loc = location || "Sin ubicación"
+
+    const subjectFinal = subject || `Alerta puerta ${eventLabel} - ${loc}`
+    const textFinal =
+      message ||
+      `Evento ${eventLabel} en ${loc}\nBoard: ${board_name || "N/A"}\nDoor ID: ${door_id || "N/A"}`
+
+    const toList = toEmails.split(",").map((e) => e.trim()).filter(Boolean)
+
+    await resend.emails.send({
+      from: fromEmail,
+      to: toList,
+      subject: subjectFinal,
+      text: textFinal,
     })
+
+    return NextResponse.json({ ok: true, message: "Correo enviado." })
   } catch (error) {
-    console.error("[poc] Error en /api/alerts/email (no bloqueante):", error)
-    return NextResponse.json({
-      ok: false,
-      message: "Error en placeholder de email, ignorado para POC.",
-    })
+    console.error("[alerts/email] Error:", error)
+    return NextResponse.json({ ok: false, message: "Error enviando correo." }, { status: 500 })
   }
 }
-
