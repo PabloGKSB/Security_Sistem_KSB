@@ -7,20 +7,13 @@ const fromEmail = process.env.ALERTS_EMAIL_FROM
 
 const toEmails = process.env.ALERTS_EMAIL_TO
 
-const alertsToken = process.env.ALERTS_TOKEN
 
 
 const resend = resendApiKey ? new Resend(resendApiKey) : null
 
 export async function POST(request: Request) {
   try {
-    // ✅ Seguridad mínima (opcional pero recomendado)
-    if (alertsToken) {
-      const token = request.headers.get("x-alerts-token")
-      if (token !== alertsToken) {
-        return NextResponse.json({ ok: false, message: "Unauthorized" }, { status: 401 })
-      }
-    }
+  
 
     const body = await request.json().catch(() => ({} as any))
     const { subject, message, door_id, board_name, location, event_type } = body
